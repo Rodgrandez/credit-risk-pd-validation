@@ -7,6 +7,13 @@ end to end on 36-month Lending Club loans: a WoE logistic scorecard, an XGBoost 
 expected loss, and a validation report written as a second line of defence would write it.
 
 <!-- RESULTS:START -->
+| Out-of-time (2014-2015) | AUC | Gini | KS |
+|---|---|---|---|
+| Scorecard (WoE logistic) | 0.639 | 0.277 | 0.199 |
+| Challenger (XGBoost) | 0.661 | 0.322 | 0.232 |
+| Benchmark: Lending Club grade | 0.661 | 0.322 | – |
+
+Score PSI (development vs OOT): **0.003** · Hosmer-Lemeshow OOT p-value: **0** · LGD OOT predicted vs realized: **0.895** vs **0.891**
 <!-- RESULTS:END -->
 
 ![ROC](reports/figures/roc.png) ![Calibration by vintage](reports/figures/calibration_vintage.png)

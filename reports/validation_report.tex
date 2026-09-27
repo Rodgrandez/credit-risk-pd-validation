@@ -1,0 +1,114 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}
+\title{Validation report: PD scorecard on Lending Club 36-month loans}\author{Rodrigo Grandez}\date{}
+\begin{document}\maketitle
+\section*{Summary}
+Out-of-time (2014--2015) AUC 0.639, Gini 0.277, KS 0.199;
+Hosmer--Lemeshow p-value 0; score PSI 0.003.
+\section*{Findings and tables}
+\subsection*{Discrimination scorecard}
+\begin{tabular}{lrrrrr}
+\toprule
+sample & n & default\_rate & auc & gini & ks \\
+\midrule
+train & 140225 & 0.126 & 0.651 & 0.301 & 0.220 \\
+holdout & 35201 & 0.126 & 0.652 & 0.304 & 0.226 \\
+oot & 445596 & 0.145 & 0.639 & 0.277 & 0.199 \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Discrimination challenger}
+\begin{tabular}{lrrrrr}
+\toprule
+sample & n & default\_rate & auc & gini & ks \\
+\midrule
+train & 140225 & 0.126 & 0.705 & 0.410 & 0.295 \\
+holdout & 35201 & 0.126 & 0.675 & 0.351 & 0.262 \\
+oot & 445596 & 0.145 & 0.661 & 0.322 & 0.232 \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Calibration deciles oot}
+\begin{tabular}{rrrrrr}
+\toprule
+group & n & defaults & observed\_dr & mean\_pd & binom\_pvalue \\
+\midrule
+1 & 44560 & 2048 & 0.046 & 0.045 & 0.271 \\
+2 & 44560 & 3544 & 0.080 & 0.069 & 0.000 \\
+3 & 44559 & 4445 & 0.100 & 0.085 & 0.000 \\
+4 & 44560 & 5262 & 0.118 & 0.099 & 0.000 \\
+5 & 44559 & 5967 & 0.134 & 0.113 & 0.000 \\
+6 & 44560 & 6780 & 0.152 & 0.129 & 0.000 \\
+7 & 44559 & 7407 & 0.166 & 0.145 & 0.000 \\
+8 & 44560 & 8225 & 0.185 & 0.165 & 0.000 \\
+9 & 44559 & 9476 & 0.213 & 0.191 & 0.000 \\
+10 & 44560 & 11293 & 0.253 & 0.246 & 0.000 \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Stability}
+\begin{tabular}{lrl}
+\toprule
+variable & psi & status \\
+\midrule
+loan\_amnt & 0.019 & stable \\
+annual\_inc & 0.009 & stable \\
+dti & 0.066 & stable \\
+emp\_length\_years & 0.023 & stable \\
+fico\_mid & 0.058 & stable \\
+inq\_last\_6mths & 0.034 & stable \\
+delinq\_2yrs & 0.026 & stable \\
+pub\_rec & 0.001 & stable \\
+open\_acc & 0.034 & stable \\
+total\_acc & 0.014 & stable \\
+revol\_bal & 0.009 & stable \\
+revol\_util & 0.031 & stable \\
+credit\_history\_years & 0.054 & stable \\
+home\_ownership & 0.015 & stable \\
+verification\_status & 0.165 & monitor \\
+purpose & 0.106 & monitor \\
+score & 0.003 & stable \\
+\bottomrule
+\end{tabular}
+
+\subsection*{El backtest}
+\begin{tabular}{rrrrrr}
+\toprule
+vintage & n & exposure & expected\_loss & realized\_loss & ratio \\
+\midrule
+2014 & 162570 & 2046040750.000 & 216201182.388 & 136945537.923 & 1.579 \\
+2015 & 283026 & 3624300800.000 & 370240162.773 & 274011577.241 & 1.351 \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Sensitivity}
+\begin{tabular}{lr}
+\toprule
+scenario & expected\_loss \\
+\midrule
+base & 586441345.161 \\
+PD x1.2 & 703729614.193 \\
+LGD +10pp & 651504473.061 \\
+PD x1.2 \& LGD +10pp & 781805367.673 \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Coefficients}
+\begin{tabular}{lr}
+\toprule
+feature & coef \\
+\midrule
+fico\_mid & -0.797 \\
+annual\_inc & -0.825 \\
+revol\_util & -0.351 \\
+dti & -0.583 \\
+purpose & -1.055 \\
+inq\_last\_6mths & -1.069 \\
+home\_ownership & -0.419 \\
+\bottomrule
+\end{tabular}
+
+\section*{Figures}
+\includegraphics[width=.48\textwidth]{figures/roc.png}\hfill\includegraphics[width=.48\textwidth]{figures/calibration_vintage.png}
+\includegraphics[width=.48\textwidth]{figures/psi.png}\hfill\includegraphics[width=.48\textwidth]{figures/shap.png}
+\end{document}

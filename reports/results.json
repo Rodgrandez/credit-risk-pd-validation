@@ -1,0 +1,97 @@
+{
+  "discrimination": [
+    {
+      "sample": "train",
+      "n": 140225,
+      "default_rate": 0.1263540738099483,
+      "auc": 0.6505323206785654,
+      "gini": 0.30106464135713074,
+      "ks": 0.22020639252228724
+    },
+    {
+      "sample": "holdout",
+      "n": 35201,
+      "default_rate": 0.12610437203488536,
+      "auc": 0.6518020707607897,
+      "gini": 0.30360414152157933,
+      "ks": 0.2256763877470206
+    },
+    {
+      "sample": "oot",
+      "n": 445596,
+      "default_rate": 0.1446310110503685,
+      "auc": 0.6386858144553643,
+      "gini": 0.27737162891072864,
+      "ks": 0.19935138689819748
+    }
+  ],
+  "challenger_discrimination": [
+    {
+      "sample": "train",
+      "n": 140225,
+      "default_rate": 0.1263540738099483,
+      "auc": 0.7051586160493932,
+      "gini": 0.41031723209878646,
+      "ks": 0.29522313277894907
+    },
+    {
+      "sample": "holdout",
+      "n": 35201,
+      "default_rate": 0.12610437203488536,
+      "auc": 0.6753224828853028,
+      "gini": 0.35064496577060567,
+      "ks": 0.26243631772502357
+    },
+    {
+      "sample": "oot",
+      "n": 445596,
+      "default_rate": 0.1446310110503685,
+      "auc": 0.6609973485253752,
+      "gini": 0.32199469705075034,
+      "ks": 0.23201966584765243
+    }
+  ],
+  "benchmark_grade_auc_oot": 0.6607954287544526,
+  "hosmer_lemeshow_oot": {
+    "stat": 1227.448970320878,
+    "pvalue": 0.0
+  },
+  "score_psi": 0.0033414286778307334,
+  "lgd_oot": {
+    "predicted_mean": 0.8947589132007797,
+    "realized_mean": 0.8908480671004441
+  },
+  "el_backtest": [
+    {
+      "vintage": 2014,
+      "n": 162570,
+      "exposure": 2046040750.0,
+      "expected_loss": 216201182.38808614,
+      "realized_loss": 136945537.92339972,
+      "ratio": 1.5787384216126703
+    },
+    {
+      "vintage": 2015,
+      "n": 283026,
+      "exposure": 3624300800.0,
+      "expected_loss": 370240162.77296805,
+      "realized_loss": 274011577.24079764,
+      "ratio": 1.351184378781215
+    }
+  ],
+  "sample_sizes": {
+    "train": 140225,
+    "holdout": 35201,
+    "oot": 445596
+  },
+  "selected_features": [
+    "fico_mid",
+    "annual_inc",
+    "revol_util",
+    "dti",
+    "purpose",
+    "inq_last_6mths",
+    "home_ownership"
+  ],
+  "data_note": "Resolved 36-month Lending Club loans; development 2007-2013, out-of-time 2014-2015."
+}
