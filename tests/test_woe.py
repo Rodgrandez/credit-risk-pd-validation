@@ -23,7 +23,7 @@ def test_woe_monotone_for_monotone_risk():
     X, y = _data()
     t = WoeBinner(["x"], []).fit(X, y).woe_table("x")
     t = t[t["bin"] != "MISSING"]
-    assert (np.diff(t["woe"].to_numpy()) < 0).all()      # más x -> más riesgo -> menor WoE
+    assert (np.diff(t["woe"].to_numpy()) < 0).all()      # higher x -> higher risk -> lower WoE
 
 
 def test_transform_unseen_and_missing():

@@ -19,12 +19,12 @@ def test_parse_emp_length():
 
 def test_clean_filters_and_target(raw_frame):
     df = clean(raw_frame)
-    assert df["id"].str.isnumeric().all()                      # filas basura fuera
+    assert df["id"].str.isnumeric().all()                      # summary (junk) rows dropped
     assert set(df["default"].unique()) <= {0, 1}
     assert not df["vintage"].isna().any()
     kept = raw_frame.set_index("id").loc[df["id"]]
-    assert (kept["term"].str.strip() == "36 months").all()      # solo 36 meses
-    assert not kept["loan_status"].isin(["Current"]).any()      # solo resueltos
+    assert (kept["term"].str.strip() == "36 months").all()      # 36-month loans only
+    assert not kept["loan_status"].isin(["Current"]).any()      # resolved loans only
     bad = kept["loan_status"].isin(config.BAD_STATUSES).astype(int).to_numpy()
     assert (df["default"].to_numpy() == bad).all()
 

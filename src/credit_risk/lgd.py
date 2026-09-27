@@ -47,3 +47,10 @@ class TwoStageLGD:
 
 def expected_loss(pd_, lgd_, ead) -> np.ndarray:
     return np.asarray(pd_) * np.asarray(lgd_) * np.asarray(ead, dtype=float)
+
+
+def ead_factor(defaults: pd.DataFrame) -> float:
+    """Average exposure at default as a share of the funded amount, estimated on development defaults."""
+    ead, funded = exposure_at_default(defaults), defaults["funded_amnt"]
+    ok = (ead > 0) & (funded > 0)
+    return float((ead[ok] / funded[ok]).mean())

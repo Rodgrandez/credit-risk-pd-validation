@@ -6,10 +6,10 @@ import pandas as pd
 from credit_risk import config, plots, report
 from credit_risk.challenger import fit_xgb, shap_matrix, to_model_frame
 from credit_risk.data import build_interim, download, feature_frame
-from credit_risk.lgd import TwoStageLGD, realized_lgd
-from credit_risk.metrics import auc, hosmer_lemeshow
+from credit_risk.lgd import TwoStageLGD, ead_factor, realized_lgd
+from credit_risk.metrics import auc, calibration_summary, hosmer_lemeshow
 from credit_risk.scorecard import Scorecard
-from credit_risk.split import split_samples
+from credit_risk.split import early_stopping_split, split_samples
 from credit_risk.validation import (
     decile_calibration,
     discrimination_table,
@@ -32,14 +32,20 @@ def stage_models():
     X = {k: feature_frame(v) for k, v in s.items()}
     y = {k: v["default"].to_numpy() for k, v in s.items()}
     sc = Scorecard.fit(X["train"], y["train"], NUM, CAT)
-    tr, cats = to_model_frame(X["train"], CAT)
-    ho, _ = to_model_frame(X["holdout"], CAT, cats)
-    xgb = fit_xgb(tr, y["train"], ho, y["holdout"])
+    # XGBoost early-stops on a slice of train, so the holdout stays independent of tuning.
+    fit_df, es_df = early_stopping_split(s["train"])
+    tr, cats = to_model_frame(feature_frame(fit_df), CAT)
+    es, _ = to_model_frame(feature_frame(es_df), CAT, cats)
+    xgb = fit_xgb(tr, fit_df["default"].to_numpy(), es, es_df["default"].to_numpy())
+    same = sc.features_
+    xgb_same = fit_xgb(tr[same], fit_df["default"].to_numpy(), es[same], es_df["default"].to_numpy())
     bad_train = s["train"][s["train"]["default"] == 1]
     lgd_y = realized_lgd(bad_train)
     lgd = TwoStageLGD(NUM, CAT).fit(feature_frame(bad_train)[lgd_y.notna()], lgd_y.dropna())
+    factor = ead_factor(bad_train)
     with open(MODELS, "wb") as f:
-        pickle.dump({"scorecard": sc, "xgb": xgb, "cats": cats, "lgd": lgd}, f)
+        pickle.dump({"scorecard": sc, "xgb": xgb, "xgb_same": xgb_same, "cats": cats, "lgd": lgd,
+                     "ead_factor": factor}, f)
 
 
 def _calibration_by_vintage(frames: dict, y: dict, pd_sc: dict) -> pd.DataFrame:
@@ -75,10 +81,13 @@ def stage_report():
     cal_vint = _calibration_by_vintage({"train": s["train"], "holdout": s["holdout"], "oot": oot}, y, pd_sc)
     stab = stability_table(X["train"], X["oot"], NUM, CAT, m["scorecard"].score(X["train"]),
                            m["scorecard"].score(X["oot"]))
-    elbt = el_backtest(oot, pd_sc["oot"], lgd_pred_oot)
-    sens = sensitivity_table(oot, pd_sc["oot"], lgd_pred_oot)
-    hl_stat, hl_p = hosmer_lemeshow(y["oot"], pd_sc["oot"])
-    vals, sample = shap_matrix(m["xgb"], to_model_frame(X["oot"], CAT, m["cats"])[0])
+    elbt = el_backtest(oot, pd_sc["oot"], lgd_pred_oot, ead_factor=m["ead_factor"])
+    sens = sensitivity_table(oot, pd_sc["oot"], lgd_pred_oot, ead_factor=m["ead_factor"])
+    hl_stat, hl_p = hosmer_lemeshow(y["oot"], pd_sc["oot"], df=10)    # external sample: df = number of groups
+    cal_oot = calibration_summary(y["oot"], pd_sc["oot"])
+    oot_frame = to_model_frame(X["oot"], CAT, m["cats"])[0]
+    auc_same = auc(y["oot"], m["xgb_same"].predict_proba(oot_frame[m["scorecard"].features_])[:, 1])
+    vals, sample = shap_matrix(m["xgb"], oot_frame)
 
     coefs = m["scorecard"].coefficients().rename("coef").reset_index().rename(columns={"index": "feature"})
     ivs = m["scorecard"].binner.iv_.rename("iv").reset_index().rename(columns={"index": "feature"})
@@ -96,10 +105,17 @@ def stage_report():
 
     results = {"discrimination": disc.to_dict("records"), "challenger_discrimination": disc_x.to_dict("records"),
                "benchmark_grade_auc_oot": auc(y["oot"], grade_rank),
-               "hosmer_lemeshow_oot": {"stat": hl_stat, "pvalue": hl_p},
+               "hosmer_lemeshow_oot": {"stat": hl_stat, "pvalue": hl_p, "df": 10},
+               "calibration_oot": cal_oot,
+               "challenger_same_features_auc_oot": auc_same,
+               "iv_total": float(m["scorecard"].binner.iv_[m["scorecard"].features_].sum()),
                "score_psi": float(stab.set_index("variable").loc["score", "psi"]),
+               "psi_flags": stab[(stab["status"] != "stable") & (stab["variable"] != "score")].to_dict("records"),
                "lgd_oot": {"predicted_mean": float(lgd_pred_oot[bad_oot].mean()),
-                           "realized_mean": float(lgd_real_oot.mean())},
+                           "realized_mean": float(lgd_real_oot.mean()),
+                           "pred_min": float(lgd_pred_oot.min()), "pred_max": float(lgd_pred_oot.max())},
+               "ead_factor": m["ead_factor"],
+               "el_total_ratio_oot": float(elbt["expected_loss"].sum() / elbt["realized_loss"].sum()),
                "el_backtest": elbt.to_dict("records"),
                "sample_sizes": {k: len(v) for k, v in s.items()},
                "selected_features": m["scorecard"].features_,

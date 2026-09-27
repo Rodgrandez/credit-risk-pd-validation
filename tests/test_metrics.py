@@ -29,7 +29,7 @@ def test_psi_identical_zero_and_shift_large():
 
 def test_psi_handles_empty_bin():
     e = np.r_[np.zeros(100), np.arange(100.0)]
-    a = np.arange(100.0)                      # sin masa en el bin del 0 repetido
+    a = np.arange(100.0)                      # no mass in the repeated-zero bin
     val = psi(e, a)
     assert np.isfinite(val) and val > 0
 
@@ -56,3 +56,20 @@ def test_calibration_table_columns():
     t = calibration_table(y, p, g)
     assert list(t.columns) == ["group", "n", "defaults", "observed_dr", "mean_pd", "binom_pvalue"]
     assert t.loc[t.group == "a", "defaults"].item() == 1
+
+
+def test_calibration_summary_and_pvalue_format():
+    from credit_risk.metrics import calibration_summary, format_pvalue
+    rng = np.random.default_rng(7); p = rng.uniform(0.02, 0.3, 50000); y = (rng.random(50000) < p).astype(int)
+    s = calibration_summary(y, p)
+    assert abs(s["ratio"] - 1) < 0.03 and abs(s["slope"] - 1) < 0.1 and 0 < s["brier"] < 0.25
+    s2 = calibration_summary(y, p * 0.8)
+    assert s2["ratio"] < 0.85 and s2["max_decile_gap_pp"] > 1
+    assert format_pvalue(0.0) == "<1e-16" and format_pvalue(0.0123) == "0.0123"
+
+
+def test_hosmer_lemeshow_df_parameter():
+    rng = np.random.default_rng(2); p = rng.uniform(0.02, 0.3, 40000); y = (rng.random(40000) < p).astype(int)
+    _, p_dev = hosmer_lemeshow(y, p)
+    _, p_oot = hosmer_lemeshow(y, p, df=10)
+    assert p_oot > p_dev          # more degrees of freedom -> larger p for the same statistic

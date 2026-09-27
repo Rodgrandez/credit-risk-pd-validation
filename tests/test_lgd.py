@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from credit_risk.lgd import TwoStageLGD, expected_loss, exposure_at_default, realized_lgd
 
@@ -13,7 +14,7 @@ def test_realized_lgd_bounds():
     assert exposure_at_default(df).tolist() == [600, 600, 600, 0, 600]
     assert lgd[0] == 1.0 and lgd[1] == 0.0 and lgd[2] == 0.5
     assert np.isnan(lgd[3])                     # EAD = 0
-    assert lgd[4] == 0.0                        # recupera más que la exposición -> recortado a 0
+    assert lgd[4] == 0.0                        # recoveries exceed exposure -> clipped to 0
 
 
 def test_two_stage_predictions_in_range():
@@ -28,3 +29,10 @@ def test_two_stage_predictions_in_range():
 
 def test_expected_loss_product():
     assert expected_loss(np.array([0.1]), np.array([0.5]), np.array([1000.0]))[0] == 50.0
+
+
+def test_ead_factor():
+    from credit_risk.lgd import ead_factor
+    df = pd.DataFrame({"funded_amnt": [1000., 2000., 1000.], "total_rec_prncp": [400., 1000., 1000.],
+                       "recoveries": 0., "collection_recovery_fee": 0.})
+    assert ead_factor(df) == pytest.approx((0.6 + 0.5) / 2)      # EAD <= 0 excluded

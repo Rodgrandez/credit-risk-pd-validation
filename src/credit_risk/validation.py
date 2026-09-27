@@ -29,10 +29,14 @@ def stability_table(X_ref, X_new, numeric, categorical, score_ref, score_new) ->
     return t
 
 
-def el_backtest(df: pd.DataFrame, pd_, lgd_pred) -> pd.DataFrame:
-    """Expected loss (PD x LGD x funded amount) vs realized loss (EAD - net recoveries on defaults), by vintage."""
+def el_backtest(df: pd.DataFrame, pd_, lgd_pred, ead_factor: float = 1.0) -> pd.DataFrame:
+    """Lifetime expected loss (PD x LGD x EAD) vs realized loss (EAD at default - net recoveries), by vintage.
+
+    LGD is defined on exposure at default, so the predicted EAD is funded amount x ead_factor (the average
+    EAD/funded ratio of development defaults): both sides of the ratio use the same exposure base.
+    """
     net_recovery = df["recoveries"] - df["collection_recovery_fee"]
-    d = df.assign(el=expected_loss(pd_, lgd_pred, df["funded_amnt"]),
+    d = df.assign(el=expected_loss(pd_, lgd_pred, df["funded_amnt"] * ead_factor),
                   loss=df["default"] * (exposure_at_default(df) - net_recovery).clip(lower=0))
     t = d.groupby("vintage").agg(n=("el", "size"), exposure=("funded_amnt", "sum"), expected_loss=("el", "sum"),
                                  realized_loss=("loss", "sum")).reset_index()
@@ -40,8 +44,8 @@ def el_backtest(df: pd.DataFrame, pd_, lgd_pred) -> pd.DataFrame:
     return t
 
 
-def sensitivity_table(df: pd.DataFrame, pd_, lgd_pred) -> pd.DataFrame:
-    pd_, lgd_pred, ead = np.asarray(pd_), np.asarray(lgd_pred), df["funded_amnt"].to_numpy()
+def sensitivity_table(df: pd.DataFrame, pd_, lgd_pred, ead_factor: float = 1.0) -> pd.DataFrame:
+    pd_, lgd_pred, ead = np.asarray(pd_), np.asarray(lgd_pred), df["funded_amnt"].to_numpy() * ead_factor
     scen = {"base": (pd_, lgd_pred), "PD x1.2": (np.clip(pd_ * 1.2, 0, 1), lgd_pred),
             "LGD +10pp": (pd_, np.clip(lgd_pred + 0.10, 0, 1)),
             "PD x1.2 & LGD +10pp": (np.clip(pd_ * 1.2, 0, 1), np.clip(lgd_pred + 0.10, 0, 1))}

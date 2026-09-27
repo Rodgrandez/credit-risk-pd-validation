@@ -51,3 +51,12 @@ def test_sensitivity():
     t = sensitivity_table(df, np.array([.1, .1, .2]), np.array([.5, .5, .5])).set_index("scenario")
     assert t.loc["PD x1.2", "expected_loss"] == pytest.approx(1.2 * t.loc["base", "expected_loss"])
     assert t.loc["LGD +10pp", "expected_loss"] > t.loc["base", "expected_loss"]
+
+
+def test_el_backtest_same_exposure_base():
+    df = pd.DataFrame({"vintage": [2014, 2014], "default": [1, 0], "funded_amnt": [1000., 1000.],
+                       "total_rec_prncp": [400., 1000.], "recoveries": [0., 0.], "collection_recovery_fee": [0., 0.]})
+    t = el_backtest(df, np.array([.5, .5]), np.array([1., 1.]), ead_factor=0.6).set_index("vintage")
+    assert t.loc[2014, "ratio"] == pytest.approx(1.0)       # perfect PD/LGD on the same EAD base -> ratio 1
+    s = sensitivity_table(df, np.array([.5, .5]), np.array([1., 1.]), ead_factor=0.6).set_index("scenario")
+    assert s.loc["base", "expected_loss"] == pytest.approx(600.0)

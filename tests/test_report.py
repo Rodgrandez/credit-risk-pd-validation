@@ -10,12 +10,27 @@ RESULTS = {
                        {"sample": "oot", "n": 80, "default_rate": 0.14, "auc": 0.6912, "gini": 0.3824, "ks": 0.29}],
     "challenger_discrimination": [{"sample": "oot", "n": 80, "default_rate": 0.14, "auc": 0.7034, "gini": 0.4068,
                                    "ks": 0.3}],
-    "benchmark_grade_auc_oot": 0.70, "hosmer_lemeshow_oot": {"stat": 25.0, "pvalue": 0.0016},
-    "score_psi": 0.03, "lgd_oot": {"predicted_mean": 0.9, "realized_mean": 0.88},
+    "benchmark_grade_auc_oot": 0.70, "hosmer_lemeshow_oot": {"stat": 1200.0, "pvalue": 0.0},
+    "calibration_oot": {"mean_pd": 0.124, "observed_dr": 0.144, "ratio": 0.861, "slope": 0.93, "brier": 0.12,
+                        "max_decile_gap_pp": 2.4},
+    "challenger_same_features_auc_oot": 0.6451, "iv_total": 0.45,
+    "score_psi": 0.03, "psi_flags": [{"variable": "purpose", "psi": 0.106, "status": "monitor"}],
+    "lgd_oot": {"predicted_mean": 0.9, "realized_mean": 0.88, "pred_min": 0.85, "pred_max": 0.92},
+    "ead_factor": 0.58, "el_total_ratio_oot": 0.847,
     "el_backtest": [{"vintage": 2014, "n": 10, "exposure": 1e5, "expected_loss": 9e3, "realized_loss": 1e4,
                      "ratio": 0.9}],
-    "sample_sizes": {"train": 100, "holdout": 20, "oot": 80}, "data_note": "36-month loans",
+    "sample_sizes": {"train": 100, "holdout": 20, "oot": 80}, "data_note": "36-month loans.",
 }
+
+
+def test_validation_narrative_has_opinion_findings_and_recommendations():
+    text = report.validation_narrative(RESULTS)
+    for heading in ["Scope", "Overall opinion", "Findings", "Limitations", "Recommendations"]:
+        assert heading in text
+    assert "lifetime" in text.lower()
+    assert "High" in text                         # calibration ratio 0.861 < 0.90 -> high-severity finding
+    assert "0.645" in text and "0.847" in text     # same-feature challenger and EL ratio come from results
+    assert "purpose" in text
 
 
 def test_write_results_roundtrip(tmp_path):
@@ -30,11 +45,12 @@ def test_update_readme_uses_results(tmp_path):
     report.update_readme(readme, RESULTS)
     text = readme.read_text(encoding="utf-8")
     assert "old 0.99" not in text and "0.691" in text and "0.703" in text and text.endswith("tail\n")
+    assert "<1e-16" in text and "0.861" in text and "0.847" in text and "lifetime" in text.lower()
 
 
 def test_model_card_and_tex(tmp_path):
     mc = report.write_model_card(RESULTS, tmp_path / "model_card.md").read_text(encoding="utf-8")
-    assert "0.691" in mc and "Limitations" in mc
+    assert "0.691" in mc and "Limitations" in mc and "lifetime" in mc.lower() and "{'train'" not in mc
     tables = {"stability": pd.DataFrame({"variable": ["a"], "psi": [0.01], "status": ["stable"]})}
     tex = report.write_validation_tex(RESULTS, tables, tmp_path / "v.tex").read_text(encoding="utf-8")
     assert r"\begin{document}" in tex and "0.691" in tex
@@ -69,5 +85,16 @@ def test_pipeline_smoke(tmp_path, monkeypatch):
     pipeline.stage_models()
     pipeline.stage_report()
     res = json.loads((tmp_path / "reports/results.json").read_text())
-    assert {"discrimination", "score_psi", "el_backtest"} <= set(res)
+    assert {"discrimination", "score_psi", "el_backtest", "calibration_oot", "el_total_ratio_oot",
+            "challenger_same_features_auc_oot", "ead_factor", "psi_flags"} <= set(res)
+    assert "Overall opinion" in (tmp_path / "reports/validation_report.tex").read_text(encoding="utf-8")
     assert "Scorecard (WoE logistic)" in (tmp_path / "README.md").read_text(encoding="utf-8")
+
+
+def test_narrative_conclusions_follow_the_numbers():
+    shifted = dict(RESULTS, score_psi=0.3, challenger_same_features_auc_oot=0.70,
+                   lgd_oot=dict(RESULTS["lgd_oot"], predicted_mean=0.80))
+    base, alt = report.validation_narrative(RESULTS), report.validation_narrative(shifted)
+    assert "population is stable" in base and "has also shifted" in alt
+    assert "extra features" in base and "non-linear form" in alt
+    assert "driven mainly by PD" in base and "also off on average" in alt

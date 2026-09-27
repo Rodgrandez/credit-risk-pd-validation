@@ -27,3 +27,12 @@ def test_holdout_fraction_close():
     df = pd.DataFrame({"id": [str(i) for i in range(1, 20001)], "vintage": 2012})
     s = split_samples(df)
     assert abs(len(s["holdout"]) / len(df) - config.HOLDOUT_FRAC) < 0.02
+
+
+def test_early_stopping_split_disjoint_and_deterministic(raw_frame):
+    from credit_risk.split import early_stopping_split
+    train = split_samples(clean(raw_frame))["train"]
+    fit, es = early_stopping_split(train)
+    assert not (set(fit["id"]) & set(es["id"])) and len(fit) + len(es) == len(train)
+    _, es2 = early_stopping_split(train.sample(frac=1, random_state=1))
+    assert set(es["id"]) == set(es2["id"])

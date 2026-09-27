@@ -18,7 +18,7 @@ def test_selects_informative_and_negative_coefficients():
     X, y = _data()
     sc = Scorecard.fit(X, y, ["x1", "x2", "noise"], ["cat"])
     assert {"x1", "x2", "cat"} <= set(sc.features_) and "noise" not in sc.features_
-    assert (sc.coefficients() < 0).all()        # WoE alto = bajo riesgo -> coeficiente negativo
+    assert (sc.coefficients() < 0).all()        # high WoE = low risk -> negative coefficient
 
 
 def test_points_scale():

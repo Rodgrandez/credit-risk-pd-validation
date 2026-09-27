@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import binomtest, chi2
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, roc_curve
 
 _FLOOR = 1e-6
@@ -43,12 +44,29 @@ def psi_categorical(expected, actual) -> float:
     return float(np.sum((pa - pe) * np.log(pa / pe)))
 
 
-def hosmer_lemeshow(y, p, n_groups: int = 10) -> tuple[float, float]:
+def hosmer_lemeshow(y, p, n_groups: int = 10, df: int | None = None) -> tuple[float, float]:
+    """HL test. df defaults to n_groups - 2 (development sample); use df=n_groups on external / OOT data."""
     d = pd.DataFrame({"y": np.asarray(y), "p": np.asarray(p)})
     d["g"] = pd.qcut(d["p"].rank(method="first"), n_groups, labels=False)
     g = d.groupby("g").agg(obs=("y", "sum"), exp=("p", "sum"), n=("y", "size"))
     stat = float((((g.obs - g.exp) ** 2) / (g.exp * (1 - g.exp / g.n))).sum())
-    return stat, float(1 - chi2.cdf(stat, n_groups - 2))
+    return stat, float(chi2.sf(stat, n_groups - 2 if df is None else df))
+
+
+def calibration_summary(y, p) -> dict:
+    """Effect sizes to read alongside HL: calibration-in-the-large, slope, Brier and the largest decile gap."""
+    y, p = np.asarray(y), np.clip(np.asarray(p, dtype=float), 1e-9, 1 - 1e-9)
+    logit = np.log(p / (1 - p)).reshape(-1, 1)
+    slope = float(LogisticRegression(C=np.inf, max_iter=1000).fit(logit, y).coef_[0][0])
+    dec = pd.qcut(pd.Series(p).rank(method="first"), 10, labels=False)
+    gaps = pd.DataFrame({"y": y, "p": p, "d": dec}).groupby("d").mean()
+    return {"mean_pd": float(p.mean()), "observed_dr": float(y.mean()), "ratio": float(p.mean() / y.mean()),
+            "slope": slope, "brier": float(np.mean((p - y) ** 2)),
+            "max_decile_gap_pp": float(100 * (gaps["y"] - gaps["p"]).abs().max())}
+
+
+def format_pvalue(p: float) -> str:
+    return "<1e-16" if p < 1e-16 else f"{p:.3g}"
 
 
 def binomial_upper_pvalue(defaults: int, n: int, pd_mean: float) -> float:
