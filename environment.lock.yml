@@ -180,7 +180,6 @@ dependencies:
       - bleach==6.4.0
       - certifi==2026.7.22
       - charset-normalizer==3.5.1
-      - credit-risk-pd-validation==0.1.0
       - fastjsonschema==2.22.2
       - idna==3.20
       - jsonschema==4.26.0
