@@ -10,8 +10,13 @@ from credit_risk.lgd import TwoStageLGD, realized_lgd
 from credit_risk.metrics import auc, hosmer_lemeshow
 from credit_risk.scorecard import Scorecard
 from credit_risk.split import split_samples
-from credit_risk.validation import (decile_calibration, discrimination_table, el_backtest, sensitivity_table,
-                                    stability_table)
+from credit_risk.validation import (
+    decile_calibration,
+    discrimination_table,
+    el_backtest,
+    sensitivity_table,
+    stability_table,
+)
 
 INTERIM = config.DATA_INTERIM / "loans_36m.parquet"
 MODELS = config.DATA_INTERIM / "models.pkl"
@@ -96,7 +101,7 @@ def stage_report():
                "lgd_oot": {"predicted_mean": float(lgd_pred_oot[bad_oot].mean()),
                            "realized_mean": float(lgd_real_oot.mean())},
                "el_backtest": elbt.to_dict("records"),
-               "sample_sizes": {k: int(len(v)) for k, v in s.items()},
+               "sample_sizes": {k: len(v) for k, v in s.items()},
                "selected_features": m["scorecard"].features_,
                "data_note": "Resolved 36-month Lending Club loans; development 2007-2013, out-of-time 2014-2015."}
     report.write_results(results, config.REPORTS / "results.json")
