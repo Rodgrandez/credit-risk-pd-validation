@@ -49,3 +49,25 @@ def test_plots_create_files(tmp_path):
     assert plots.psi_bars(psi_t, tmp_path / "psi.png").exists()
     vals = rng.normal(size=(50, 2)); sample = pd.DataFrame(rng.normal(size=(50, 2)), columns=["a", "b"])
     assert plots.shap_summary(vals, sample, tmp_path / "shap.png").exists()
+
+
+def test_pipeline_smoke(tmp_path, monkeypatch):
+    from conftest import make_raw
+
+    from credit_risk import config, pipeline
+    from credit_risk.data import clean
+    df = clean(make_raw(n=6000, seed=5))
+    df = df.assign(vintage=np.where(df.index % 2 == 0, 2012, 2014))
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    monkeypatch.setattr(config, "REPORTS", tmp_path / "reports")
+    monkeypatch.setattr(config, "FIGURES", tmp_path / "reports/figures")
+    monkeypatch.setattr(config, "TABLES", tmp_path / "reports/tables")
+    monkeypatch.setattr(pipeline, "INTERIM", tmp_path / "i.parquet")
+    monkeypatch.setattr(pipeline, "MODELS", tmp_path / "m.pkl")
+    (tmp_path / "README.md").write_text("<!-- RESULTS:START -->\n<!-- RESULTS:END -->\n", encoding="utf-8")
+    df.to_parquet(tmp_path / "i.parquet")
+    pipeline.stage_models()
+    pipeline.stage_report()
+    res = json.loads((tmp_path / "reports/results.json").read_text())
+    assert {"discrimination", "score_psi", "el_backtest"} <= set(res)
+    assert "Scorecard (WoE logistic)" in (tmp_path / "README.md").read_text(encoding="utf-8")
