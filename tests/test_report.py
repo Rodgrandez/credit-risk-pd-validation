@@ -98,3 +98,8 @@ def test_narrative_conclusions_follow_the_numbers():
     assert "population is stable" in base and "has also shifted" in alt
     assert "extra features" in base and "non-linear form" in alt
     assert "driven mainly by PD" in base and "also off on average" in alt
+
+
+def test_tex_escapes_less_than_in_pvalues(tmp_path):
+    tex = report.write_validation_tex(RESULTS, {}, tmp_path / "v.tex").read_text(encoding="utf-8")
+    assert "$<$1e-16" in tex and " <1e-16" not in tex       # a bare '<' prints as an inverted '!' in LaTeX

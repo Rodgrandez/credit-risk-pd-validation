@@ -2,11 +2,49 @@
 \usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}
 \title{Validation report: PD scorecard on Lending Club 36-month loans}\author{Rodrigo Grandez}\date{}
 \begin{document}\maketitle
-\section*{Summary}
-Out-of-time (2014--2015) AUC 0.639, Gini 0.277, KS 0.199;
-Hosmer--Lemeshow p-value 0; score PSI 0.003.
-\section*{Findings and tables}
-\subsection*{Discrimination scorecard}
+\noindent\textbf{Headline (out-of-time 2014--2015).} AUC 0.639, Gini 0.277,
+KS 0.199; calibration ratio 0.890; lifetime EL / realized loss
+0.836; score PSI 0.003.
+\section*{Scope}
+Independent (second-line) review of a probability-of-default scorecard for unsecured 36-month consumer loans.
+The target is a lifetime PD over the 36-month contractual term (not a 12-month regulatory PD). Development: vintages 2007--2013 (80/20 split by loan id); out-of-time
+validation: vintages 2014--2015, the latest vintages fully matured at the 2018Q4 data cut-off.
+
+\section*{Overall opinion}
+Not fit for loss estimation in its current form. Acceptable for rank-ordering applicants, subject to recalibration before any use of PD levels.
+
+\section*{Findings}
+\begin{enumerate}
+\item \textbf{[High]} Calibration out of time. Mean PD 0.129 against an observed default rate of 0.145 (ratio 0.890, slope 0.95, largest decile gap 2.4 pp, Hosmer--Lemeshow p $<$1e-16). The score population is stable, so the gap reflects a different default rate in the 2014--2015 vintages, not a change in the applicant mix. Estimates are non-conservative when the ratio is below one.
+\item \textbf{[High]} Expected loss backtest. On the same exposure-at-default base, lifetime expected loss is 0.836 times realized loss out of time (predicted LGD 0.895 vs realized 0.891). LGD is close on average, so the difference is driven mainly by PD.
+\item \textbf{[Medium]} Discrimination. Out-of-time AUC 0.639 against 0.661 for Lending Club's grade and 0.661 for the XGBoost challenger on all features. Restricted to the scorecard's features, XGBoost reaches 0.644: most of the challenger's advantage comes from the extra features (total IV 0.39 for the scorecard), not from the non-linear form.
+\item \textbf{[Low]} Stability. Score PSI 0.003. Variables flagged: verification\_status 0.165 (monitor), purpose 0.106 (monitor).
+\item \textbf{[Low]} LGD differentiation. Predicted LGD ranges only from 0.849 to 0.922: the LGD model works as a segment average rather than a ranking tool.
+\end{enumerate}
+
+\section*{Model choice: accuracy versus explainability}
+The scorecard is additive in weight-of-evidence bins, so every point of the score can be traced to an
+applicant attribute and explained in an adverse-action notice. The challenger's extra discrimination comes mostly from using more features; on the same features the gain is small, which supports keeping the interpretable form and investing in data rather than in model complexity.
+
+\section*{Limitations}
+Approved applicants only (no reject inference); 60-month loans and vintages after 2015 excluded because
+they are immature; US platform data; exposure at default approximated as the funded amount times the average
+EAD/funded ratio of development defaults (0.586); LGD ignores discounting; the challenger
+used an early-stopping set carved out of the training sample, so the holdout remains independent.
+
+\section*{Recommendations}
+\begin{enumerate}
+\item Recalibrate the PD level on the most recent matured vintages (calibration-in-the-large, then slope)
+and re-run the binomial and Hosmer--Lemeshow tests before using PD levels.
+\item Enrich the application data with bureau attributes available at origination (for example
+revolving balance-to-limit ratios and recent account openings), and re-assess discrimination.
+\item Replace the constant exposure factor with an amortization-based EAD model.
+\item Monitor the flagged variables and the score PSI quarterly with the thresholds 0.10 (monitor) and
+0.25 (action).
+\end{enumerate}
+
+\section*{Supporting tables}
+\subsection*{Discrimination: scorecard}
 \begin{tabular}{lrrrrr}
 \toprule
 sample & n & default\_rate & auc & gini & ks \\
@@ -17,18 +55,18 @@ oot & 445596 & 0.145 & 0.639 & 0.277 & 0.199 \\
 \bottomrule
 \end{tabular}
 
-\subsection*{Discrimination challenger}
+\subsection*{Discrimination: challenger (XGBoost)}
 \begin{tabular}{lrrrrr}
 \toprule
 sample & n & default\_rate & auc & gini & ks \\
 \midrule
-train & 140225 & 0.126 & 0.705 & 0.410 & 0.295 \\
-holdout & 35201 & 0.126 & 0.675 & 0.351 & 0.262 \\
+train & 140225 & 0.126 & 0.695 & 0.390 & 0.282 \\
+holdout & 35201 & 0.126 & 0.674 & 0.349 & 0.263 \\
 oot & 445596 & 0.145 & 0.661 & 0.322 & 0.232 \\
 \bottomrule
 \end{tabular}
 
-\subsection*{Calibration deciles oot}
+\subsection*{Calibration by PD decile (OOT)}
 \begin{tabular}{rrrrrr}
 \toprule
 group & n & defaults & observed\_dr & mean\_pd & binom\_pvalue \\
@@ -46,7 +84,7 @@ group & n & defaults & observed\_dr & mean\_pd & binom\_pvalue \\
 \bottomrule
 \end{tabular}
 
-\subsection*{Stability}
+\subsection*{Population stability (PSI)}
 \begin{tabular}{lrl}
 \toprule
 variable & psi & status \\
@@ -71,29 +109,29 @@ score & 0.003 & stable \\
 \bottomrule
 \end{tabular}
 
-\subsection*{El backtest}
+\subsection*{Expected loss backtest (OOT)}
 \begin{tabular}{rrrrrr}
 \toprule
 vintage & n & exposure & expected\_loss & realized\_loss & ratio \\
 \midrule
-2014 & 162570 & 2046040750.000 & 216201182.388 & 136945537.923 & 1.579 \\
-2015 & 283026 & 3624300800.000 & 370240162.773 & 274011577.241 & 1.351 \\
+2014 & 162570 & 2,046,040,750 & 126,637,998 & 136,945,538 & 0.925 \\
+2015 & 283026 & 3,624,300,800 & 216,865,017 & 274,011,577 & 0.791 \\
 \bottomrule
 \end{tabular}
 
-\subsection*{Sensitivity}
+\subsection*{Expected loss sensitivity (OOT)}
 \begin{tabular}{lr}
 \toprule
 scenario & expected\_loss \\
 \midrule
-base & 586441345.161 \\
-PD x1.2 & 703729614.193 \\
-LGD +10pp & 651504473.061 \\
-PD x1.2 \& LGD +10pp & 781805367.673 \\
+base & 343,503,016 \\
+PD x1.2 & 412,203,619 \\
+LGD +10pp & 381,613,188 \\
+PD x1.2 \& LGD +10pp & 457,935,826 \\
 \bottomrule
 \end{tabular}
 
-\subsection*{Coefficients}
+\subsection*{Scorecard coefficients}
 \begin{tabular}{lr}
 \toprule
 feature & coef \\

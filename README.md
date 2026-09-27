@@ -10,10 +10,14 @@ expected loss, and a validation report written as a second line of defence would
 | Out-of-time (2014-2015) | AUC | Gini | KS |
 |---|---|---|---|
 | Scorecard (WoE logistic) | 0.639 | 0.277 | 0.199 |
-| Challenger (XGBoost) | 0.661 | 0.322 | 0.232 |
+| Challenger (XGBoost, all features) | 0.661 | 0.322 | 0.232 |
+| Challenger (XGBoost, scorecard features) | 0.644 | 0.288 | – |
 | Benchmark: Lending Club grade | 0.661 | 0.322 | – |
 
-Score PSI (development vs OOT): **0.003** · Hosmer-Lemeshow OOT p-value: **0** · LGD OOT predicted vs realized: **0.895** vs **0.891**
+- **Horizon:** lifetime PD over the 36-month contractual term (not a 12-month regulatory PD).
+- **Calibration (OOT):** mean PD 0.129 vs observed default rate 0.145 (ratio **0.890**, slope 0.95, largest decile gap 2.4 pp; Hosmer-Lemeshow p <1e-16). The model under-predicts default out of time: recalibration is required.
+- **Expected loss backtest (OOT, same exposure-at-default base):** lifetime EL / realized loss **0.836**; LGD predicted 0.895 vs realized 0.891.
+- **Stability:** score PSI 0.003; verification_status 0.165 (monitor), purpose 0.106 (monitor).
 <!-- RESULTS:END -->
 
 ![ROC](reports/figures/roc.png) ![Calibration by vintage](reports/figures/calibration_vintage.png)

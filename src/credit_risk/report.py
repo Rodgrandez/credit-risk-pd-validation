@@ -140,7 +140,7 @@ def validation_narrative(r: dict) -> str:
          (f"Calibration out of time. Mean PD {cal['mean_pd']:.3f} against an observed default rate of "
           f"{cal['observed_dr']:.3f} (ratio {cal['ratio']:.3f}, slope {cal['slope']:.2f}, largest decile gap "
           f"{cal['max_decile_gap_pp']:.1f} pp, Hosmer--Lemeshow p "
-          f"{format_pvalue(r['hosmer_lemeshow_oot']['pvalue'])}). "
+          f"{format_pvalue(r['hosmer_lemeshow_oot']['pvalue']).replace('<', '$<$')}). "
           f"{population} Estimates are non-conservative when the ratio is below one.")),
         (_severity(el, lambda v: v < 0.90, lambda v: v < 0.95 or v > 1.20),
          (f"Expected loss backtest. On the same exposure-at-default base, lifetime expected loss is {el:.3f} "
