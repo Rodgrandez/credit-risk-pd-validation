@@ -2,8 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from credit_risk.validation import (decile_calibration, discrimination_table, el_backtest, sensitivity_table,
-                                    stability_table)
+from credit_risk.validation import (
+    decile_calibration,
+    discrimination_table,
+    el_backtest,
+    sensitivity_table,
+    stability_table,
+)
 
 
 def test_discrimination_table():

@@ -3,9 +3,9 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import shap  # noqa: E402
-from sklearn.metrics import roc_curve  # noqa: E402
+import matplotlib.pyplot as plt
+import shap
+from sklearn.metrics import roc_curve
 
 
 def _save(fig, path: Path) -> Path:

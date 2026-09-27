@@ -2,8 +2,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from credit_risk.metrics import (auc, binomial_upper_pvalue, calibration_table, gini, hosmer_lemeshow, ks,
-                                 psi, psi_categorical)
+from credit_risk.metrics import (
+    auc,
+    binomial_upper_pvalue,
+    calibration_table,
+    gini,
+    hosmer_lemeshow,
+    ks,
+    psi,
+    psi_categorical,
+)
 
 
 def test_perfect_and_random_discrimination():

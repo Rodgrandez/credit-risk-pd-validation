@@ -32,18 +32,18 @@ def results_markdown(r: dict) -> str:
     lines = ["| Out-of-time (2014-2015) | AUC | Gini | KS |", "|---|---|---|---|",
              f"| Scorecard (WoE logistic) | {champ['auc']:.3f} | {champ['gini']:.3f} | {champ['ks']:.3f} |",
              f"| Challenger (XGBoost) | {chall['auc']:.3f} | {chall['gini']:.3f} | {chall['ks']:.3f} |",
-             f"| Benchmark: Lending Club grade | {r['benchmark_grade_auc_oot']:.3f} | "
-             f"{2 * r['benchmark_grade_auc_oot'] - 1:.3f} | – |", "",
-             f"Score PSI (development vs OOT): **{r['score_psi']:.3f}** · Hosmer-Lemeshow OOT p-value: "
-             f"**{r['hosmer_lemeshow_oot']['pvalue']:.3g}** · LGD OOT predicted vs realized: "
-             f"**{r['lgd_oot']['predicted_mean']:.3f}** vs **{r['lgd_oot']['realized_mean']:.3f}**"]
+             (f"| Benchmark: Lending Club grade | {r['benchmark_grade_auc_oot']:.3f} | "
+              f"{2 * r['benchmark_grade_auc_oot'] - 1:.3f} | – |"), "",
+             (f"Score PSI (development vs OOT): **{r['score_psi']:.3f}** · Hosmer-Lemeshow OOT p-value: "
+              f"**{r['hosmer_lemeshow_oot']['pvalue']:.3g}** · LGD OOT predicted vs realized: "
+              f"**{r['lgd_oot']['predicted_mean']:.3f}** vs **{r['lgd_oot']['realized_mean']:.3f}**")]
     return "\n".join(lines)
 
 
 def update_readme(readme: Path, results: dict) -> None:
     text = Path(readme).read_text(encoding="utf-8")
     block = f"{START}\n{results_markdown(results)}\n{END}"
-    new = re.sub(re.escape(START) + r".*?" + re.escape(END), lambda _: block, text, flags=re.S)
+    new = re.sub(re.escape(START) + r".*?" + re.escape(END), lambda _: block, text, flags=re.DOTALL)
     Path(readme).write_text(new, encoding="utf-8")
 
 
