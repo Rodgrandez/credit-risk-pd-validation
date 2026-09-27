@@ -12,7 +12,7 @@ dependencies:
   - pyarrow>=16
   - jinja2>=3.1          # DataFrame.to_latex
   - pytest>=8
-  - ruff
+  - ruff=0.16.9            # pinned: CI must apply the same default rule set
   - make
   - pip
   - pip:
